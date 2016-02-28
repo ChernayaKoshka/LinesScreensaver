@@ -6,6 +6,7 @@ typedef struct tagScreensaverOptions
 	int MaxDisplaysSupported;
 	float TargetTime;
 	BOOL ContinuousLines;
+	BOOL DifferentScreenPerDisplay;
 	BOOL ExpireDraw;
 	int ExpireDrawAfter;
 }Options;

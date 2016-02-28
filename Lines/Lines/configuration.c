@@ -27,6 +27,7 @@ int LoadConfig(Options* a)
 		Options options = { 0 };
 		options.ContinuousLines = TRUE;
 		options.ExpireDraw = TRUE;
+		options.DifferentScreenPerDisplay = FALSE;
 		options.ExpireDrawAfter = 1000;
 		options.MaxDisplaysSupported = 5;
 		options.TargetTime = 0.25f;

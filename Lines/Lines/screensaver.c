@@ -92,16 +92,24 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMoni
 	display.Previous.x = -1;
 	display.Previous.x = -1;
 
-	int bufferSize = screenHeight*screenWidth * 4;
-	display.BackBuffer = malloc(bufferSize); //4 = bytes to display RGB
-	memset(display.BackBuffer, 0, bufferSize);
+	if (options.DifferentScreenPerDisplay || monCount == 0) {
+		int bufferSize = screenHeight*screenWidth * 4;
+		display.BackBuffer = malloc(bufferSize); //4 = bytes to display RGB
+		ZeroMemory(display.BackBuffer, bufferSize);
 
-	display.BitMapInfo.bmiHeader.biSize = sizeof(display.BitMapInfo.bmiHeader);
-	display.BitMapInfo.bmiHeader.biWidth = screenWidth;
-	display.BitMapInfo.bmiHeader.biHeight = -screenHeight;
-	display.BitMapInfo.bmiHeader.biPlanes = 1;
-	display.BitMapInfo.bmiHeader.biBitCount = 32;
-	display.BitMapInfo.bmiHeader.biCompression = BI_RGB;
+		display.BitMapInfo.bmiHeader.biSize = sizeof(display.BitMapInfo.bmiHeader);
+		display.BitMapInfo.bmiHeader.biWidth = screenWidth;
+		display.BitMapInfo.bmiHeader.biHeight = -screenHeight;
+		display.BitMapInfo.bmiHeader.biPlanes = 1;
+		display.BitMapInfo.bmiHeader.biBitCount = 32;
+		display.BitMapInfo.bmiHeader.biCompression = BI_RGB;
+	}
+	else
+	{
+		display.BackBuffer = Displays[0].BackBuffer;
+		display.BitMapInfo = Displays[0].BitMapInfo;
+	}
+
 
 	Displays[monCount] = display;
 	monCount++;
@@ -158,6 +166,8 @@ int CalculateLines()
 		{
 			Displays[i].Previous = EndingPoint;
 		}
+
+		if (options.DifferentScreenPerDisplay==FALSE) return 0;
 	}
 
 	return 0;
@@ -195,7 +205,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		{
 			StretchDIBits(Displays[i].DrawingContext,
 				0, 0, Displays[i].ScreenWidth, Displays[i].ScreenHeight,
-				0, 0, Displays[i].ScreenWidth, Displays[i].ScreenHeight,
+				0, 0, Displays[i].BitMapInfo.bmiHeader.biWidth, Abs(Displays[i].BitMapInfo.bmiHeader.biHeight),
 				Displays[i].BackBuffer, &Displays[i].BitMapInfo,
 				DIB_RGB_COLORS, SRCCOPY);
 		}
