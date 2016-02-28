@@ -148,11 +148,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="configuration.c" />
     <ClCompile Include="drawing.c" />
     <ClCompile Include="math_custom.c" />
     <ClCompile Include="screensaver.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="configuration.h" />
     <ClInclude Include="drawing.h" />
     <ClInclude Include="math_custom.h" />
   </ItemGroup>
