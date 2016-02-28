@@ -22,6 +22,7 @@
 
 # Executables
 *.exe
+*.scr
 *.out
 *.app
 *.i*86
@@ -30,3 +31,9 @@
 
 # Debug files
 *.dSYM/
+*Debug/
+*Release/
+
+# Visual Studio
+*.suo
+*.sdf
