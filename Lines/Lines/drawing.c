@@ -1,3 +1,5 @@
+#include "math_custom.h"
+
 int Plot(int x, int y, int color, int* buffer, int bufferWidth)
 {
 	buffer[(y*bufferWidth) + x] = color;
