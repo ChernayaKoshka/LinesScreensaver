@@ -3,6 +3,7 @@
 *.ko
 *.obj
 *.elf
+*.iobj
 
 # Precompiled Headers
 *.gch
@@ -33,7 +34,13 @@
 *.dSYM/
 *Debug/
 *Release/
+*.ipdb
+*.pdb
+
+# Linker
+*.ilk
 
 # Visual Studio
 *.suo
 *.sdf
+*.vs/
