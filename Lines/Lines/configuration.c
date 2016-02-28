@@ -2,19 +2,27 @@
 #include "configuration.h"
 
 int LoadConfig(Options* a)
-{FILE* fp;
+{
+	FILE* fp;
 
-	char* annoying = (char*)malloc(4096);
+	char* directory;
+	size_t directoryBufSize;
+	_dupenv_s(&directory, &directoryBufSize, "appdata");
 
-	errno_t err = fopen_s(&fp, "config.bin", "ab+");
+	int length = strnlen_s(directory, directoryBufSize);
+	char* path = malloc(length + 17); //17 = length of "\\linesconfig.bin"
+	strcpy_s(path, length + 17, directory);
+	strcat_s(path, length + 17, "\\linesconfig.bin");
 
+	fopen_s(&fp, path, "ab+");
 	if (!fp) return 0;
+	free(path);
 
 	fseek(fp, 0L, SEEK_END);
 	int fileSize = ftell(fp);
 	rewind(fp);
 
-	if (fileSize<sizeof(Options))
+	if (fileSize < sizeof(Options))
 	{
 		Options options = { 0 };
 		options.ContinuousLines = TRUE;
@@ -24,7 +32,7 @@ int LoadConfig(Options* a)
 		options.TargetTime = 0.25f;
 		fwrite(&options, sizeof(Options), 1, fp);
 		fclose(fp);
-		a = &options;
+		memcpy_s(a, sizeof(Options), &options, sizeof(Options));
 		return 0;
 	}
 
