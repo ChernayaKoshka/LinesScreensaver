@@ -19,4 +19,6 @@ typedef enum tageDrawType
 	Dots = 2
 }eDrawType;
 
-int LoadConfig(Options* a);
+BOOL LoadConfig(Options* opt);
+
+BOOL WriteConfig(Options* opt);
