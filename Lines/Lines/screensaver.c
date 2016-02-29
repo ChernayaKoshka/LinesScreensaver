@@ -42,6 +42,21 @@ static double GTimePassed = 0;
 static float SecondsPerTick = 0;
 static __int64 GTimeCount = 0;
 
+HWND SettingsWindow = 0;
+
+HWND DrawTypeComBox = 0;
+HWND MaxDisplaysSupportedIUD = 0;
+HWND TargetTimeIUD = 0; //IntegerUpDown or FloatingUpDown? iunno, TODO: look up later
+HWND ContinuousLinesCB = 0;
+HWND DifferenScreenPerDisplayCB = 0;
+HWND ExpireDrawCB = 0;
+HWND ExpireDrawAfterIUD = 0;
+
+HWND SaveSettingsBtn = 0;
+HINSTANCE hThisInstance = 0;
+int nThisShowCmd = 0;
+BOOL bSettingsWindowVisible = FALSE;
+
 float Sys_InitFloatTime()
 {
 	LARGE_INTEGER Frequency;
@@ -92,7 +107,8 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMoni
 	display.Previous.x = -1;
 	display.Previous.x = -1;
 
-	if (options.DifferentScreenPerDisplay || monCount == 0) {
+	if (options.DifferentScreenPerDisplay || monCount == 0) 
+	{
 		int bufferSize = screenHeight*screenWidth * 4;
 		display.BackBuffer = malloc(bufferSize); //4 = bytes to display RGB
 		ZeroMemory(display.BackBuffer, bufferSize);
@@ -202,8 +218,87 @@ int CalculateLines()
 	return 0;
 }
 
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
+{
+	LRESULT Result = 0;
+
+	switch (uMsg)
+	{
+	case WM_KEYUP:
+		return Result;
+	case WM_CLOSE:
+		Running = FALSE;
+		return Result;
+	case WM_COMMAND:
+		switch (LOWORD(wParam))
+		{
+		case BN_CLICKED:
+			if ((HWND)lParam == ContinuousLinesCB)
+			{
+				if (options.ContinuousLines)
+					options.ContinuousLines = FALSE;
+				else
+					options.ContinuousLines = TRUE;
+			}
+			else if ((HWND)lParam == SaveSettingsBtn)
+			{
+				WriteConfig(&options);
+			}
+			break;
+		}
+		return Result;
+	case WM_PAINT:
+	default:
+		Result = DefWindowProc(hWnd, uMsg, wParam, lParam);
+	}
+
+	return Result;
+}
+
+void RegisterClasses()
+{
+	//define window
+	WNDCLASSEX wc = { 0 };
+	wc.cbSize = sizeof(wc);
+	wc.lpfnWndProc = WndProc;
+	wc.hInstance = hThisInstance;
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.lpszClassName = L"screenoptions";
+
+	if (!RegisterClassEx(&wc))
+		return;
+
+	RECT r = { 0 };
+	r.right = 200;
+	r.bottom = 200;
+	AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW | WS_VISIBLE, FALSE);
+
+	SettingsWindow = CreateWindowExW(
+		0,
+		L"screenoptions",
+		L"Screensaver Settings",
+		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		r.right - r.left,
+		r.bottom - r.top,
+		NULL,
+		NULL,
+		hThisInstance,
+		0);
+
+	ContinuousLinesCB = CreateWindowExW(0, L"BUTTON", L"Continuous Lines", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 0, 0, 200, 20, SettingsWindow, NULL, hThisInstance, NULL);
+	SaveSettingsBtn = CreateWindowExW(0, L"BUTTON", L"Save", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 40, 80, 80, SettingsWindow, NULL, hThisInstance, NULL);
+	ShowWindow(SettingsWindow, nThisShowCmd);
+}
+
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+	hThisInstance = hInstance;
+	nThisShowCmd = nShowCmd;
+	RegisterClasses();
+
+
 	LoadConfig(&options);
 
 	Displays = (EnumeratedDisplay*)malloc(sizeof(EnumeratedDisplay)*options.MaxDisplaysSupported);
@@ -217,9 +312,20 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	POINT oldPos;
 	GetCursorPos(&oldPos);
+	MSG msg;
+	bSettingsWindowVisible = TRUE;
 
 	while (Running)
 	{
+		if (bSettingsWindowVisible)
+		{
+			while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		}
+
 		float NewTime = Sys_FloatTime();
 		TimeAccumulated += NewTime - PrevTime;
 		PrevTime = NewTime;
