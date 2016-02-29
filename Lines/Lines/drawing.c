@@ -39,12 +39,11 @@ int DrawLine(int x, int y, int x2, int y2, int color, int* buffer, int bufferWid
 	return 0;
 }
 
-int DrawRect(int x, int y, int width, int height, int* buffer, int bufferWidth)
+int DrawRect(int x, int y, int width, int height, int color, int* buffer, int bufferWidth, int bufferHeight)
 {
-	for (int i = 0; i < height; i++)
+	for (int i = 0; i < height && x <= bufferWidth && (y+i) < bufferHeight; i++)
 	{
-		int trueHeight = (y + i);
-		DrawLine(x, trueHeight, width, trueHeight, 0x00FF0000, buffer, bufferWidth);
+		DrawLine(x, (y+i), width, (y+i), color, buffer, bufferWidth);
 	}
 	return 0;
 }

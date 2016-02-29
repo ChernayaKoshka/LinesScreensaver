@@ -155,12 +155,26 @@ int CalculateLines()
 		EndingPoint.x = rand() % display.ScreenWidth;
 		EndingPoint.y = rand() % display.ScreenHeight;
 
-		DrawLine(StartingPoint.x,
-				 StartingPoint.y,
-				 EndingPoint.x,
-				 EndingPoint.y,
-				 color, (int*)display.BackBuffer,
-				 display.ScreenWidth);
+		if (options.Rectangles == FALSE)
+		{
+			DrawLine(StartingPoint.x,
+				StartingPoint.y,
+				EndingPoint.x,
+				EndingPoint.y,
+				color, (int*)display.BackBuffer,
+				display.ScreenWidth);
+		}
+		else
+		{
+			DrawRect(StartingPoint.x, 
+					 StartingPoint.y, 
+					 EndingPoint.x, 
+					 EndingPoint.y, 
+					 color, 
+					 (int*)display.BackBuffer, 
+					 display.ScreenWidth,
+					 display.ScreenHeight);
+		}
 
 		if (options.ContinuousLines)
 		{

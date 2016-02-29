@@ -3,6 +3,7 @@
 
 typedef struct tagScreensaverOptions
 {
+	BOOL Rectangles;
 	int MaxDisplaysSupported;
 	float TargetTime;
 	BOOL ContinuousLines;

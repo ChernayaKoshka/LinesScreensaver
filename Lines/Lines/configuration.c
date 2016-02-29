@@ -25,9 +25,10 @@ int LoadConfig(Options* a)
 	if (fileSize < sizeof(Options))
 	{
 		Options options = { 0 };
+		options.Rectangles = FALSE;
 		options.ContinuousLines = TRUE;
 		options.ExpireDraw = TRUE;
-		options.DifferentScreenPerDisplay = FALSE;
+		options.DifferentScreenPerDisplay = TRUE;
 		options.ExpireDrawAfter = 1000;
 		options.MaxDisplaysSupported = 5;
 		options.TargetTime = 0.25f;
