@@ -155,25 +155,40 @@ int CalculateLines()
 		EndingPoint.x = rand() % display.ScreenWidth;
 		EndingPoint.y = rand() % display.ScreenHeight;
 
-		if (options.Rectangles == FALSE)
+		switch (options.DrawType)
 		{
+		case 0:
 			DrawLine(StartingPoint.x,
 				StartingPoint.y,
 				EndingPoint.x,
 				EndingPoint.y,
 				color, (int*)display.BackBuffer,
 				display.ScreenWidth);
-		}
-		else
-		{
-			DrawRect(StartingPoint.x, 
-					 StartingPoint.y, 
-					 EndingPoint.x, 
-					 EndingPoint.y, 
-					 color, 
-					 (int*)display.BackBuffer, 
-					 display.ScreenWidth,
-					 display.ScreenHeight);
+			break;
+		case 1:
+			DrawRect(StartingPoint.x,
+				StartingPoint.y,
+				EndingPoint.x,
+				EndingPoint.y,
+				color,
+				(int*)display.BackBuffer,
+				display.ScreenWidth,
+				display.ScreenHeight);
+			break;
+		case 2:
+			Plot(StartingPoint.x,
+				StartingPoint.y,
+				color,
+				(int*)display.BackBuffer,
+				display.ScreenWidth);
+			Plot(EndingPoint.x,
+				EndingPoint.y,
+				color,
+				(int*)display.BackBuffer,
+				display.ScreenWidth);
+			break;
+		default:
+			break;
 		}
 
 		if (options.ContinuousLines)
@@ -181,7 +196,7 @@ int CalculateLines()
 			Displays[i].Previous = EndingPoint;
 		}
 
-		if (options.DifferentScreenPerDisplay==FALSE) return 0;
+		if (options.DifferentScreenPerDisplay == FALSE) return 0;
 	}
 
 	return 0;
@@ -228,12 +243,16 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		GetCursorPos(&newPos);
 		if (Abs(newPos.x - oldPos.x) > 5 || Abs(newPos.y - oldPos.y) > 5)
 			Running = FALSE;
-		else
-			oldPos = newPos;
 
 	}
-	for (int i = 0; i < monCount; i++)
+	for (int i = 0; i < monCount; i++) 
+	{
 		ReleaseDC(NULL, Displays[i].DrawingContext);
+		if (Displays[i].BackBuffer == Displays[0].BackBuffer && i != 0)
+			continue;
+		free(Displays[i].BackBuffer);
+	}
+	free(Displays);
 
 	//refresh explorer to remove remanents
 	SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, 0, 0);

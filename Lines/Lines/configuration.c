@@ -22,16 +22,16 @@ int LoadConfig(Options* a)
 	int fileSize = ftell(fp);
 	rewind(fp);
 
-	if (fileSize < sizeof(Options))
+	if (fileSize != sizeof(Options))
 	{
 		Options options = { 0 };
-		options.Rectangles = FALSE;
-		options.ContinuousLines = TRUE;
-		options.ExpireDraw = TRUE;
+		options.DrawType = Dots;
+		options.ContinuousLines = FALSE;
 		options.DifferentScreenPerDisplay = TRUE;
+		options.ExpireDraw = FALSE;
 		options.ExpireDrawAfter = 1000;
 		options.MaxDisplaysSupported = 5;
-		options.TargetTime = 0.25f;
+		options.TargetTime = 0.00f;
 		fwrite(&options, sizeof(Options), 1, fp);
 		fclose(fp);
 		memcpy_s(a, sizeof(Options), &options, sizeof(Options));
