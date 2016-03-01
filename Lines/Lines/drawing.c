@@ -44,8 +44,9 @@ void DrawLine(int x, int y, int x2, int y2, int color, int* buffer, int bufferWi
 
 void DrawRect(int x, int y, int width, int height, int color, int* buffer, int bufferWidth, int bufferHeight)
 {
-	for (int i = 0; i < height && x <= bufferWidth && (y+i) < bufferHeight; i++)
+	for (int i = 0; i < height; i++)
 	{
-		DrawLine(x, (y+i), width, (y+i), color, buffer, bufferWidth);
+		if((((y+i)*bufferWidth) + x) < (bufferWidth*bufferHeight))
+			DrawLine(x, (y+i), width, (y+i), color, buffer, bufferWidth);
 	}
 }
