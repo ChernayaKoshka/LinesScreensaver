@@ -42,13 +42,16 @@ BOOL LoadConfig(Options* opt)
 	if (fileSize != sizeof(Options))
 	{
 		Options options = { 0 };
-		options.DrawType = Lines;
+		options.DrawType = Dots;
 		options.ContinuousLines = TRUE;
 		options.DifferentScreenPerDisplay = TRUE;
 		options.ExpireDraw = TRUE;
 		options.ExpireDrawAfter = 500;
 		options.MaxDisplaysSupported = 5;
 		options.TargetTime = 0.10f;
+		options.Starburst = TRUE;
+		options.StartburstFrom.x = 960;
+		options.StartburstFrom.y = 540;
 
 		fclose(fp);
 		WriteConfig(&options);

@@ -166,6 +166,12 @@ int CalculateLines()
 			StartingPoint.x = rand() % display.ScreenWidth;
 			StartingPoint.y = rand() % display.ScreenHeight;
 		}
+		
+		if (options.Starburst)
+		{
+			StartingPoint.x = options.StartburstFrom.x;
+			StartingPoint.y = options.StartburstFrom.y;
+		}
 
 		POINT EndingPoint = { 0 };
 		EndingPoint.x = rand() % display.ScreenWidth;

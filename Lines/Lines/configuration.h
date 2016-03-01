@@ -9,6 +9,8 @@ typedef struct tagScreensaverOptions
 	BOOL ContinuousLines;
 	BOOL DifferentScreenPerDisplay;
 	BOOL ExpireDraw;
+	BOOL Starburst;
+	POINT StartburstFrom;
 	int ExpireDrawAfter;
 }Options;
 
