@@ -7,17 +7,11 @@
 
 BOOL Running = TRUE;
 
-BOOL goingBack = FALSE;
-
 int monCount = 0;
 
 int ExpireCount = 0;
 
 Options options = { 0 };
-
-unsigned char colorCount = 0;
-
-char* dbgStr = "Count: 0x%X | %d\r\n";
 
 typedef struct tagEnumeratedDisplay
 {
@@ -141,7 +135,7 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMoni
 	return TRUE;
 }
 
-int CalculateLines()
+int CalculateScreen()
 {
 	if (options.ExpireDraw)
 	{
@@ -188,7 +182,7 @@ int CalculateLines()
 
 		switch (options.DrawType)
 		{
-		case 0:
+		case Lines:
 			DrawLine(StartingPoint.x,
 				StartingPoint.y,
 				EndingPoint.x,
@@ -196,7 +190,7 @@ int CalculateLines()
 				color, (int*)display.BackBuffer,
 				display.ScreenWidth, display.ScreenHeight);
 			break;
-		case 1:
+		case Rectangles:
 			DrawRect(StartingPoint.x,
 				StartingPoint.y,
 				EndingPoint.x,
@@ -206,7 +200,7 @@ int CalculateLines()
 				display.ScreenWidth,
 				display.ScreenHeight);
 			break;
-		case 2:
+		case Dots:
 			Plot(StartingPoint.x,
 				StartingPoint.y,
 				color,
@@ -218,6 +212,26 @@ int CalculateLines()
 				(int*)display.BackBuffer,
 				display.ScreenWidth, display.ScreenHeight);
 			break;
+		case Triangles:
+		{
+			TRIANGLE tri = { 0 };
+			tri.top = StartingPoint;
+			tri.right = EndingPoint;
+			tri.left.x = rand() % Displays[i].ScreenWidth;
+			tri.left.y = rand() % Displays[i].ScreenHeight;
+
+			DrawTriangle(tri, color, Displays[i].BackBuffer, Displays[i].ScreenWidth, Displays[i].ScreenHeight);
+			break; 
+		}
+		case Circles:
+			DrawCircle(StartingPoint.x, 
+					   StartingPoint.y,
+					   EndingPoint.x, color, Displays[i].BackBuffer, Displays[i].ScreenWidth, Displays[i].ScreenHeight);
+			break;
+		case Chevrons:
+			DrawChevron(StartingPoint.x,
+					    StartingPoint.y,
+					    EndingPoint.x, color, Displays[i].BackBuffer, Displays[i].ScreenWidth, Displays[i].ScreenHeight);
 		default:
 			break;
 		}
@@ -231,72 +245,6 @@ int CalculateLines()
 	}
 
 	return 0;
-}
-
-void CalculateTriangle()
-{
-	TRIANGLE tri = { 0 };
-
-	if (goingBack)
-	{
-		--colorCount;
-		if (colorCount <= 3) 
-			goingBack = FALSE;
-	}
-	else
-	{
-		++colorCount;
-		char* temp = (char*)malloc(1024);
-		sprintf_s(temp, 1024, dbgStr, colorCount, colorCount);
-		OutputDebugStringA(temp);
-
-		if (colorCount == 0xFF) 
-			++colorCount;
-
-		if (colorCount >= 0xFF - 0x5)
-			goingBack = TRUE;
-	}
-
-	for (int i = 0; i < monCount; i++)
-	{
-
-		int color = RGB(colorCount, colorCount, colorCount);
-
-
-		ZeroMemory(Displays[i].BackBuffer, (Displays[i].ScreenHeight*Displays[i].ScreenWidth*4));
-
-		tri.left.x = rand() % Displays[i].ScreenWidth;
-		tri.left.y = rand() % Displays[i].ScreenHeight;
-
-		tri.right.x = rand() % Displays[i].ScreenWidth;
-		tri.right.y = rand() % Displays[i].ScreenHeight;
-
-		tri.top.x = rand() % Displays[i].ScreenWidth;
-		tri.top.y = rand() % Displays[i].ScreenHeight;
-
-		DrawTriangle(tri, color, Displays[i].BackBuffer, Displays[i].ScreenWidth, Displays[i].ScreenHeight);
-	}
-}
-
-void CalculateCircle()
-{
-	for (int i = 0; i < monCount; i++)
-	{
-		DrawCircle(Displays[i].ScreenWidth / 2, Displays[i].ScreenHeight / 2, 100, 0x007F00FF, Displays[i].BackBuffer, Displays[i].ScreenWidth, Displays[i].ScreenHeight);
-	}
-}
-
-void CalculateChevron()
-{
-	for (int i = 0; i < monCount; i++)
-	{
-		ZeroMemory(Displays[i].BackBuffer, (Displays[i].ScreenHeight*Displays[i].ScreenWidth * 4));
-		DrawChevron(rand() % Displays[i].ScreenWidth,
-				    rand() % Displays[i].ScreenHeight,
-				    rand() % 100, 0x007F00FF,
-				    Displays[i].BackBuffer,
-				    Displays[i].ScreenWidth, Displays[i].ScreenHeight);
-	}
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
@@ -395,6 +343,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	GetCursorPos(&oldPos);
 	MSG msg;
 	bSettingsWindowVisible = TRUE;
+	int x = 0;
+	int y = 0;
 	while (Running)
 	{
 		if (bSettingsWindowVisible)
@@ -413,10 +363,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		if (TimeAccumulated > options.TargetTime)
 		{
 			TimeAccumulated = 0.0f;
-			CalculateCircle();
-			CalculateChevron();
-			//CalculateTriangle();
-			//CalculateLines();
+			CalculateScreen();
 		}
 
 		for (int i = 0; i < monCount; i++)

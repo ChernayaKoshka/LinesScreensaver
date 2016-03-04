@@ -18,7 +18,10 @@ typedef enum tageDrawType
 {
 	Lines = 0,
 	Rectangles = 1,
-	Dots = 2
+	Dots = 2,
+	Triangles = 3,
+	Circles = 4,
+	Chevrons = 5
 }eDrawType;
 
 BOOL LoadConfig(Options* opt);
