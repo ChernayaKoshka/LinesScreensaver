@@ -157,6 +157,10 @@
     <ClInclude Include="configuration.h" />
     <ClInclude Include="drawing.h" />
     <ClInclude Include="math_custom.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="settings.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
