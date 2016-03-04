@@ -7,11 +7,17 @@
 
 BOOL Running = TRUE;
 
+BOOL goingBack = FALSE;
+
 int monCount = 0;
 
 int ExpireCount = 0;
 
 Options options = { 0 };
+
+unsigned char colorCount = 0;
+
+char* dbgStr = "Count: 0x%X | %d\r\n";
 
 typedef struct tagEnumeratedDisplay
 {
@@ -45,12 +51,15 @@ static __int64 GTimeCount = 0;
 HWND SettingsWindow = 0;
 
 HWND DrawTypeComBox = 0;
-HWND MaxDisplaysSupportedIUD = 0;
-HWND TargetTimeIUD = 0; //IntegerUpDown or FloatingUpDown? iunno, TODO: look up later
+HWND MaxDisplaysSupportedNUD = 0;
+HWND TargetTimeNUD = 0; //IntegerUpDown or FloatingUpDown? iunno, TODO: look up later
 HWND ContinuousLinesCB = 0;
 HWND DifferenScreenPerDisplayCB = 0;
 HWND ExpireDrawCB = 0;
-HWND ExpireDrawAfterIUD = 0;
+HWND StarburstCB = 0;
+HWND StarburstXNUD = 0;
+HWND StarburstYNUD = 0;
+HWND ExpireDrawAfterNUD = 0;
 
 HWND SaveSettingsBtn = 0;
 HINSTANCE hThisInstance = 0;
@@ -185,7 +194,7 @@ int CalculateLines()
 				EndingPoint.x,
 				EndingPoint.y,
 				color, (int*)display.BackBuffer,
-				display.ScreenWidth);
+				display.ScreenWidth, display.ScreenHeight);
 			break;
 		case 1:
 			DrawRect(StartingPoint.x,
@@ -202,12 +211,12 @@ int CalculateLines()
 				StartingPoint.y,
 				color,
 				(int*)display.BackBuffer,
-				display.ScreenWidth);
+				display.ScreenWidth, display.ScreenHeight);
 			Plot(EndingPoint.x,
 				EndingPoint.y,
 				color,
 				(int*)display.BackBuffer,
-				display.ScreenWidth);
+				display.ScreenWidth, display.ScreenHeight);
 			break;
 		default:
 			break;
@@ -222,6 +231,72 @@ int CalculateLines()
 	}
 
 	return 0;
+}
+
+void CalculateTriangle()
+{
+	TRIANGLE tri = { 0 };
+
+	if (goingBack)
+	{
+		--colorCount;
+		if (colorCount <= 3) 
+			goingBack = FALSE;
+	}
+	else
+	{
+		++colorCount;
+		char* temp = (char*)malloc(1024);
+		sprintf_s(temp, 1024, dbgStr, colorCount, colorCount);
+		OutputDebugStringA(temp);
+
+		if (colorCount == 0xFF) 
+			++colorCount;
+
+		if (colorCount >= 0xFF - 0x5)
+			goingBack = TRUE;
+	}
+
+	for (int i = 0; i < monCount; i++)
+	{
+
+		int color = RGB(colorCount, colorCount, colorCount);
+
+
+		ZeroMemory(Displays[i].BackBuffer, (Displays[i].ScreenHeight*Displays[i].ScreenWidth*4));
+
+		tri.left.x = rand() % Displays[i].ScreenWidth;
+		tri.left.y = rand() % Displays[i].ScreenHeight;
+
+		tri.right.x = rand() % Displays[i].ScreenWidth;
+		tri.right.y = rand() % Displays[i].ScreenHeight;
+
+		tri.top.x = rand() % Displays[i].ScreenWidth;
+		tri.top.y = rand() % Displays[i].ScreenHeight;
+
+		DrawTriangle(tri, color, Displays[i].BackBuffer, Displays[i].ScreenWidth, Displays[i].ScreenHeight);
+	}
+}
+
+void CalculateCircle()
+{
+	for (int i = 0; i < monCount; i++)
+	{
+		DrawCircle(Displays[i].ScreenWidth / 2, Displays[i].ScreenHeight / 2, 100, 0x007F00FF, Displays[i].BackBuffer, Displays[i].ScreenWidth, Displays[i].ScreenHeight);
+	}
+}
+
+void CalculateChevron()
+{
+	for (int i = 0; i < monCount; i++)
+	{
+		ZeroMemory(Displays[i].BackBuffer, (Displays[i].ScreenHeight*Displays[i].ScreenWidth * 4));
+		DrawChevron(rand() % Displays[i].ScreenWidth,
+				    rand() % Displays[i].ScreenHeight,
+				    rand() % 100, 0x007F00FF,
+				    Displays[i].BackBuffer,
+				    Displays[i].ScreenWidth, Displays[i].ScreenHeight);
+	}
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
@@ -302,7 +377,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 {
 	hThisInstance = hInstance;
 	nThisShowCmd = nShowCmd;
-	RegisterClasses();
+	//RegisterClasses();
 
 
 	LoadConfig(&options);
@@ -320,7 +395,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	GetCursorPos(&oldPos);
 	MSG msg;
 	bSettingsWindowVisible = TRUE;
-
 	while (Running)
 	{
 		if (bSettingsWindowVisible)
@@ -339,7 +413,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		if (TimeAccumulated > options.TargetTime)
 		{
 			TimeAccumulated = 0.0f;
-			CalculateLines();
+			CalculateCircle();
+			CalculateChevron();
+			//CalculateTriangle();
+			//CalculateLines();
 		}
 
 		for (int i = 0; i < monCount; i++)
