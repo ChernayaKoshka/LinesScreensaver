@@ -13,9 +13,14 @@ int ExpireCount = 0;
 
 Options options = { 0 };
 
+BOOL bFullscreenSuccessful = FALSE;
+
 typedef struct tagEnumeratedDisplay
 {
-	HDC DrawingContext;
+	BOOL bIsWindow;
+	HWND hwndWindow;
+	RECT monRect;
+	HDC hdcDrawingContext;
 	int ScreenWidth;
 	int ScreenHeight;
 	POINT Previous;
@@ -41,24 +46,6 @@ EnumeratedDisplay* Displays;
 static double GTimePassed = 0;
 static float SecondsPerTick = 0;
 static __int64 GTimeCount = 0;
-
-HWND SettingsWindow = 0;
-
-HWND DrawTypeComBox = 0;
-HWND MaxDisplaysSupportedNUD = 0;
-HWND TargetTimeNUD = 0; //IntegerUpDown or FloatingUpDown? iunno, TODO: look up later
-HWND ContinuousLinesCB = 0;
-HWND DifferenScreenPerDisplayCB = 0;
-HWND ExpireDrawCB = 0;
-HWND StarburstCB = 0;
-HWND StarburstXNUD = 0;
-HWND StarburstYNUD = 0;
-HWND ExpireDrawAfterNUD = 0;
-
-HWND SaveSettingsBtn = 0;
-HINSTANCE hThisInstance = 0;
-int nThisShowCmd = 0;
-BOOL bSettingsWindowVisible = FALSE;
 
 float Sys_InitFloatTime()
 {
@@ -99,7 +86,9 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMoni
 
 	EnumeratedDisplay display = { 0 };
 
-	display.DrawingContext = dc;
+	display.hdcDrawingContext = dc;
+
+	display.monRect = info.rcMonitor;
 
 	int screenHeight = Difference(info.rcMonitor.bottom, info.rcMonitor.top);
 	int screenWidth = Difference(info.rcMonitor.right, info.rcMonitor.left);
@@ -128,7 +117,6 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMoni
 		display.BackBuffer = Displays[0].BackBuffer;
 		display.BitMapInfo = Displays[0].BitMapInfo;
 	}
-
 
 	Displays[monCount] = display;
 	monCount++;
@@ -255,26 +243,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
 	{
 	case WM_KEYUP:
 		return Result;
+	case WM_ERASEBKGND:
+		return TRUE;
 	case WM_CLOSE:
 		Running = FALSE;
 		return Result;
 	case WM_COMMAND:
-		switch (LOWORD(wParam))
-		{
-		case BN_CLICKED:
-			if ((HWND)lParam == ContinuousLinesCB)
-			{
-				if (options.ContinuousLines)
-					options.ContinuousLines = FALSE;
-				else
-					options.ContinuousLines = TRUE;
-			}
-			else if ((HWND)lParam == SaveSettingsBtn)
-			{
-				WriteConfig(&options);
-			}
-			break;
-		}
 		return Result;
 	case WM_PAINT:
 	default:
@@ -284,55 +258,71 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, WPARAM lParam)
 	return Result;
 }
 
-void RegisterClasses()
+void CreateFullscreenWindows(HINSTANCE hInstance, int nShowCmd)
 {
-	//define window
-	WNDCLASSEX wc = { 0 };
-	wc.cbSize = sizeof(wc);
-	wc.lpfnWndProc = WndProc;
-	wc.hInstance = hThisInstance;
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.lpszClassName = L"screenoptions";
+	for (int i = 0; i < monCount; i++)
+	{
+		//define window
+		WNDCLASSEX wc = { 0 };
+		wc.cbSize = sizeof(wc);
+		wc.lpfnWndProc = WndProc;
+		wc.hInstance = hInstance;
+		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 
-	if (!RegisterClassEx(&wc))
-		return;
+		wchar_t buf[20];
 
-	RECT r = { 0 };
-	r.right = 200;
-	r.bottom = 200;
-	AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW | WS_VISIBLE, FALSE);
+		swprintf_s(buf, 20, L"LineSCR%d", i);
 
-	SettingsWindow = CreateWindowExW(
-		0,
-		L"screenoptions",
-		L"Screensaver Settings",
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		r.right - r.left,
-		r.bottom - r.top,
-		NULL,
-		NULL,
-		hThisInstance,
-		0);
+		wc.lpszClassName = &buf;
 
-	ContinuousLinesCB = CreateWindowExW(0, L"BUTTON", L"Continuous Lines", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 0, 0, 200, 20, SettingsWindow, NULL, hThisInstance, NULL);
-	SaveSettingsBtn = CreateWindowExW(0, L"BUTTON", L"Save", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 0, 40, 80, 80, SettingsWindow, NULL, hThisInstance, NULL);
-	ShowWindow(SettingsWindow, nThisShowCmd);
+		if (!RegisterClassEx(&wc))
+			return;
+
+		HWND hwndFullscreenWindow = CreateWindowExW(
+			0,
+			&buf,
+			L"report this as a bug",
+			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			Displays[i].ScreenWidth,
+			Displays[i].ScreenHeight,
+			NULL,
+			NULL,
+			hInstance,
+			0);
+
+		SetWindowLongPtr(hwndFullscreenWindow, GWL_EXSTYLE, WS_EX_APPWINDOW | WS_EX_TOPMOST);
+		SetWindowLongPtr(hwndFullscreenWindow, GWL_STYLE, WS_MAXIMIZE);
+
+		SetWindowPos(hwndFullscreenWindow, HWND_TOPMOST,
+			Displays[i].monRect.left, Displays[i].monRect.top,
+			Displays[i].ScreenWidth, Displays[i].ScreenHeight,
+			0);
+
+		Displays[i].hwndWindow = hwndFullscreenWindow;
+	}
+
+	//only executed if all windows were defined successfully
+	for (int i = 0; i < monCount; i++)
+	{
+		Displays[i].bIsWindow = TRUE;
+		Displays[i].hdcDrawingContext = GetDC(Displays[i].hwndWindow);
+		ShowWindow(Displays[i].hwndWindow, nShowCmd);
+	}
+
+	bFullscreenSuccessful = TRUE;
 }
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
-	hThisInstance = hInstance;
-	nThisShowCmd = nShowCmd;
-	//RegisterClasses();
-
-
 	LoadConfig(&options);
 
 	Displays = (EnumeratedDisplay*)malloc(sizeof(EnumeratedDisplay)*options.MaxDisplaysSupported);
 	ZeroMemory(Displays, sizeof(EnumeratedDisplay)*options.MaxDisplaysSupported);
 	EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
+
+	CreateFullscreenWindows(hInstance, nShowCmd);
 
 	Sys_InitFloatTime();
 
@@ -342,12 +332,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	POINT oldPos;
 	GetCursorPos(&oldPos);
 	MSG msg;
-	bSettingsWindowVisible = TRUE;
-	int x = 0;
-	int y = 0;
+
 	while (Running)
 	{
-		if (bSettingsWindowVisible)
+		if (bFullscreenSuccessful)
 		{
 			while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 			{
@@ -368,7 +356,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		for (int i = 0; i < monCount; i++)
 		{
-			StretchDIBits(Displays[i].DrawingContext,
+			StretchDIBits(Displays[i].hdcDrawingContext,
 				0, 0, Displays[i].ScreenWidth, Displays[i].ScreenHeight,
 				0, 0, Displays[i].BitMapInfo.bmiHeader.biWidth, Abs(Displays[i].BitMapInfo.bmiHeader.biHeight),
 				Displays[i].BackBuffer, &Displays[i].BitMapInfo,
@@ -383,7 +371,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	}
 	for (int i = 0; i < monCount; i++) 
 	{
-		ReleaseDC(NULL, Displays[i].DrawingContext);
+		ReleaseDC(NULL, Displays[i].hdcDrawingContext);
 		if (Displays[i].BackBuffer == Displays[0].BackBuffer && i != 0)
 			continue;
 		free(Displays[i].BackBuffer);
